@@ -1,3 +1,5 @@
+[![.NET](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/dotnet.yml)
+
 # MirrorManager
 
 utilities to help manage mirrors and subscriptions
