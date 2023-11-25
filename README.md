@@ -1,4 +1,5 @@
 [![.NET](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/dotnet.yml)
+[![CodeQL](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Datalayer-Storage/MirrorManager/actions/workflows/github-code-scanning/codeql)
 
 # MirrorManager
 
