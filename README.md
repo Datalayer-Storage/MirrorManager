@@ -3,7 +3,7 @@
 
 # MirrorManager
 
-utilities to help manage mirrors and subscriptions
+utilities to help manage chia data layer mirrors and subscriptions
 
 ## Usage
 
