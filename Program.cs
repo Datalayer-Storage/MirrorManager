@@ -42,6 +42,18 @@ class Program
             await StoreManager.ListAll(ours);
         }, oursOnlyOption);
 
+        var checkCommand = new Command("check", "Verify that a mirror is accessible.");
+        var hostOption = new Option<string>(
+            new[] { "--host", "-h" },
+            getDefaultValue: () => "",
+            description: "The host address to check. Omit to check the local mirror.");
+        checkCommand.AddOption(hostOption);
+        checkCommand.SetHandler(async (host) =>
+        {
+            await HostManager.CheckHost(host);
+        }, hostOption);
+
+        rootCommand.AddCommand(checkCommand);
         rootCommand.AddCommand(listAllCommand);
         rootCommand.AddCommand(unMirrorCommand);
         rootCommand.AddCommand(unsubscribeCommand);

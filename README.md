@@ -5,7 +5,7 @@ utilities to help manage mirrors and subscriptions
 ## Usage
 
 ```bash
-./MirrorMnager --help
+./MirrorManager --help
 Description:
   Manages local chia data layer mirrors and subscriptions.
 
@@ -17,6 +17,7 @@ Options:
   -?, -h, --help  Show help and usage information
 
 Commands:
+  check            Verify that a mirror is accessible.
   list-all         List all stores and their mirrors.
   unmirror-all     Unmirrors all stores.
   unsubscribe-all  Unsubscribes from all stores.
@@ -25,7 +26,20 @@ Commands:
 ### Options
 
 ```bash
-./MirrorMnager list-all --help
+./MirrorManager check --help
+Description:
+  Verify that a mirror is accessible.
+
+Usage:
+  MirrorManager check [options]
+
+Options:
+  -h, --host <host>  The host address to check. Omit to check the local mirror. []
+  -?, -h, --help     Show help and usage information
+```
+
+```bash
+./MirrorManager list-all --help
 Description:
   List all stores and their mirrors.
 
@@ -38,7 +52,7 @@ Options:
 ```
 
 ```bash
-./MirrorMnager unmirror-all --help
+./MirrorManager unmirror-all --help
 Description:
   Unmirrors all stores.
 
@@ -51,7 +65,7 @@ Options:
 ```
 
 ```bash
-./MirrorMnager unsubscribe-all --help
+./MirrorManager unsubscribe-all --help
 Description:
   Unsubscribes from all stores.
 
