@@ -2,9 +2,13 @@ namespace MirrorManager;
 
 using chia.dotnet;
 
-public static class StoreManager
+public class StoreManager
 {
-    public static async Task UnsubscribeAll(bool retain, CancellationToken token = default)
+    public StoreManager()
+    {
+    }
+    
+    public async Task UnsubscribeAll(bool retain, CancellationToken token = default)
     {
         var dataLayer = GetDataLayer();
         var subscriptions = await dataLayer.Subscriptions(token);
@@ -15,7 +19,7 @@ public static class StoreManager
         }
     }
 
-    public static async Task UnmirrorAll(ulong fee, CancellationToken token = default)
+    public async Task UnmirrorAll(ulong fee, CancellationToken token = default)
     {
         var dataLayer = GetDataLayer();
         try

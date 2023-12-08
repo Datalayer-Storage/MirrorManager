@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MirrorManager;
 
@@ -7,46 +9,65 @@ static class Program
 {
     static async Task<int> Main(string[] args)
     {
+        var servicesCollection = new ServiceCollection();
+        servicesCollection.AddDataProtection();
+        servicesCollection.AddSingleton<StoreManager>();
+
+        var rootCommand = CreateCommands(servicesCollection.BuildServiceProvider());
+        return await rootCommand.InvokeAsync(args);
+    }
+
+    private static RootCommand CreateCommands(ServiceProvider services)
+    {
+
         var rootCommand = new RootCommand("Manages local chia data layer mirrors and subscriptions.");
 
-        var unsubscribeCommand = CreateCommandWithSingleOption(
-            "unsubscribe",
-            "Unsubscribe from all stores.",
-            "retain",
-            "Whether to retain files when unsubscribing.",
-            false,
-            retain => StoreManager.UnsubscribeAll(retain));
+        var commands = new List<Command>()
+        {
+            CreateCommandWithSingleOption(
+                "unsubscribe",
+                "Unsubscribe from all stores.",
+                "retain",
+                "Whether to retain files when unsubscribing.",
+                false,
+                async retain => {
+                    var stores = services.GetRequiredService<StoreManager>();
+                    await stores.UnsubscribeAll(retain);
+                }),
+            CreateCommandWithSingleOption(
+                "unmirror",
+                "Unmirror all stores.",
+                "fee",
+                "Fee to use for each removal transaction.",
+                0UL,
+                async fee => {
+                    var stores = services.GetRequiredService<StoreManager>();
+                    await stores.UnmirrorAll(fee);
+                }),
+            CreateCommandWithSingleOption(
+                "list-all",
+                "List all stores and their mirrors.",
+                "ours",
+                "Whether to only list our mirrors.",
+                true,
+                ours => StoreManager.ListAll(ours))         ,
+            CreateCommandWithSingleOption(
+                "check",
+                "Verify that a mirror host is accessible.",
+                "host",
+                "The host address to check. Omit to check the local mirror.",
+                string.Empty,
+                host => HostManager.CheckHost(host))
+        };
 
-        var unmirrorCommand = CreateCommandWithSingleOption(
-            "unmirror",
-            "Unmirror all stores.",
-            "fee",
-            "Fee to use for each removal transaction.",
-            0UL,
-            fee => StoreManager.UnmirrorAll(fee));
+        commands.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
 
-        var listAllCommand = CreateCommandWithSingleOption(
-            "list-all",
-            "List all stores and their mirrors.",
-            "ours",
-            "Whether to only list our mirrors.",
-            true,
-            ours => StoreManager.ListAll(ours));
+        foreach (var command in commands)
+        {
+            rootCommand.AddCommand(command);
+        }
 
-        var checkCommand = CreateCommandWithSingleOption(
-            "check",
-            "Verify that a mirror host is accessible.",
-            "host",
-            "The host address to check. Omit to check the local mirror.",
-            string.Empty,
-            host => HostManager.CheckHost(host));
-
-        rootCommand.AddCommand(checkCommand);
-        rootCommand.AddCommand(listAllCommand);
-        rootCommand.AddCommand(unmirrorCommand);
-        rootCommand.AddCommand(unsubscribeCommand);
-
-        return await rootCommand.InvokeAsync(args);
+        return rootCommand;
     }
 
     private static Command CreateCommandWithSingleOption<TOption>(string commandName, string commandDescription, string optionName, string optionDescription, TOption optionDefault, Func<TOption, Task> handler)
