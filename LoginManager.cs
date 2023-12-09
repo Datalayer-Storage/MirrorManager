@@ -115,7 +115,7 @@ public class LoginManager(IDataProtectionProvider provider,
         try
         {
             _logger.LogInformation(ip);
-            
+
             var updateIpUri = _configuration.GetValue("App:UserServiceUri", "https://api.datalayer.storage/user/v1/") + "update_user_ip";
             _logger.LogInformation("Contacting {loginUri}", updateIpUri);
 
@@ -127,7 +127,7 @@ public class LoginManager(IDataProtectionProvider provider,
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encodedAuth);
 
             var data = new { ip_address = ip };
-            var response = await httpClient.PostAsJsonAsync(updateIpUri, data, stoppingToken);
+            var response = await httpClient.PutAsJsonAsync(updateIpUri, data, stoppingToken);
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync(stoppingToken);
 
