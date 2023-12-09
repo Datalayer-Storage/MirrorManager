@@ -49,19 +49,19 @@ public class StoreManager(DataLayerProxy dataLayer,
 
             foreach (var subscription in subscriptions)
             {
-                _logger.LogInformation($"Subscription: {subscription}");
+                Console.WriteLine($"Subscription: {subscription}");
                 var mirrors = await _dataLayer.GetMirrors(subscription, token);
                 mirrors = ours ? mirrors.Where(m => m.Ours) : mirrors;
 
                 foreach (var mirror in mirrors)
                 {
-                    _logger.LogInformation($"  Mirror: {mirror}");
+                    Console.WriteLine($"  Mirror: {mirror.CoinId}");
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e.InnerException?.Message ?? e.Message);
+            _logger.LogError(e, e.InnerException?.Message ?? e.Message);
         }
     }
 }

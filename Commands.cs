@@ -15,11 +15,33 @@ static class Commands
             await hostManager.CheckHost(host);
         }, hostArgument);
 
+        var loginCommand = new Command("login", "Log in to datalayer.place.");
+        loginCommand.SetHandler(async () =>
+        {
+            var loginManager = services.GetRequiredService<LoginManager>();
+            await loginManager.Login();
+        });
+
+        var showMyPlaceCommand = new Command("show", "Show datalayer.place details.");
+        showMyPlaceCommand.SetHandler(async () =>
+        {
+            var loginManager = services.GetRequiredService<LoginManager>();
+            await loginManager.ShowMyPlace();
+        });
+
+        var logoutCommand = new Command("logout", "og out of datalayer.place.");
+        logoutCommand.SetHandler(() =>
+        {
+            var loginManager = services.GetRequiredService<LoginManager>();
+            loginManager.LogOut();
+        });
+
         var commands = new List<Command>()
         {
             checkCommand,
-            new Command("login", "Log in to datalayer.place."),
-            new Command("logout", "Log out of datalayer.place."),
+            loginCommand,
+            showMyPlaceCommand,
+            logoutCommand,
             CreateCommandWithSingleOption(
                 "unsubscribe",
                 "Unsubscribe from all stores.",

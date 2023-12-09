@@ -25,16 +25,17 @@ public class HostManager(ILogger<HostManager> logger,
                 _logger.LogInformation($"Checking {hostToCheck}");
 
                 var data = new { hostname = hostToCheck };
-                var response = await httpClient.PostAsJsonAsync("https://api.datalayer.storage/mirrors/v1/check_connection", data, token);
+                var checkConnectionUri = _configuration.GetValue("App:CheckConnectionUri", "https://api.datalayer.storage/mirrors/v1/check_connection");
+                var response = await httpClient.PostAsJsonAsync(checkConnectionUri, data, token);
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync(token);
 
-                _logger.LogInformation(content);
+                Console.WriteLine(content);
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e.InnerException?.Message ?? e.Message);
+            _logger.LogError(e, "{Message}", e.InnerException?.Message ?? e.Message);
         }
     }
 
