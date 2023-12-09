@@ -29,11 +29,18 @@ static class Commands
             await loginManager.ShowMyPlace();
         });
 
-        var logoutCommand = new Command("logout", "og out of datalayer.place.");
+        var logoutCommand = new Command("logout", "Log out of datalayer.place.");
         logoutCommand.SetHandler(() =>
         {
             var loginManager = services.GetRequiredService<LoginManager>();
             loginManager.LogOut();
+        });
+
+        var updateIpCommand = new Command("update", "Update the ip address for your datalayer.place proxy.");
+        updateIpCommand.SetHandler(async () =>
+        {
+            var loginManager = services.GetRequiredService<LoginManager>();
+            await loginManager.UpdateIP();
         });
 
         var commands = new List<Command>()
@@ -42,6 +49,7 @@ static class Commands
             loginCommand,
             showMyPlaceCommand,
             logoutCommand,
+            updateIpCommand,
             CreateCommandWithSingleOption(
                 "unsubscribe",
                 "Unsubscribe from all stores.",

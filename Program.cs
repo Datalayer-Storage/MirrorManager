@@ -1,5 +1,6 @@
 
 using chia.dotnet;
+using Microsoft.AspNetCore.DataProtection;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 
@@ -8,10 +9,13 @@ builder.Services.AddSingleton<StoreManager>()
     .AddSingleton<HostManager>()
     .AddSingleton<LoginManager>()
     .AddSingleton<ChiaConfig>()
+    .AddSingleton<DnsService>()
     .AddSingleton<RpcClientHost>()
     .AddSingleton((provider) => new AppStorage(".data-layer-storage"))
     .AddSingleton((provider) => new DataLayerProxy(provider.GetRequiredService<RpcClientHost>().GetRpcClient("data_layer"), "MirrorManager"))
-    .AddDataProtection();
+    .AddDataProtection()
+    .SetApplicationName("data-layer-storage")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(180)); ;
 
 var host = builder.Build();
 var rootCommand = Commands.CreateCommands(host.Services);

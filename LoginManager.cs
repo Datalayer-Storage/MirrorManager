@@ -5,11 +5,13 @@ using System.Net.Http.Json;
 
 public class LoginManager(IDataProtectionProvider provider,
                         AppStorage appStorage,
+                        DnsService dnsService,
                         ILogger<LoginManager> logger,
                         IConfiguration configuration)
 {
-    private readonly IDataProtector _protector = provider.CreateProtector("DataLayer-Storage.datalayer.place.v1");
+    private readonly IDataProtector _protector = provider.CreateProtector("DataLayer-Storage.datalayer.place.v3");
     private readonly AppStorage _appStorage = appStorage;
+    private readonly DnsService _dnsService = dnsService;
     private readonly ILogger<LoginManager> _logger = logger;
     private readonly IConfiguration _configuration = configuration;
 
@@ -20,7 +22,7 @@ public class LoginManager(IDataProtectionProvider provider,
             var credentials = GetCredentials();
             if (!string.IsNullOrEmpty(credentials.accessToken) && !string.IsNullOrEmpty(credentials.secretKey))
             {
-                Console.WriteLine("You are already logged in. Logout and try again.");
+                _logger.LogWarning("You are already logged in. Logout and try again.");
                 return;
             }
 
@@ -31,7 +33,7 @@ public class LoginManager(IDataProtectionProvider provider,
             var accessToken = Console.ReadLine();
             if (string.IsNullOrEmpty(accessToken))
             {
-                Console.WriteLine("Access token is required.");
+                _logger.LogWarning("Access token is required.");
                 return;
             }
 
@@ -39,7 +41,7 @@ public class LoginManager(IDataProtectionProvider provider,
             var secretKey = ReadSecret();
             if (string.IsNullOrEmpty(secretKey))
             {
-                Console.WriteLine("Secret key is required.");
+                _logger.LogWarning("Secret key is required.");
                 return;
             }
 
@@ -52,7 +54,7 @@ public class LoginManager(IDataProtectionProvider provider,
             var token = myPlace?.proxy_key as object;
             if (string.IsNullOrEmpty(token?.ToString()))
             {
-                Console.WriteLine("Login failed.");
+                _logger.LogError("Login failed.");
                 return;
             }
 
@@ -71,6 +73,7 @@ public class LoginManager(IDataProtectionProvider provider,
     public void LogOut()
     {
         _appStorage.Remove("auth");
+        Console.WriteLine("You have been logged out.");
     }
 
     public async Task ShowMyPlace(CancellationToken stoppingToken = default)
@@ -78,11 +81,11 @@ public class LoginManager(IDataProtectionProvider provider,
         var (accessToken, secretKey) = GetCredentials();
         if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(secretKey))
         {
-            Console.WriteLine("Not logged in.");
+            _logger.LogWarning("Not logged in.");
             return;
         }
 
-        string encodedAuth = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes(accessToken + ":" + secretKey));
+        var encodedAuth = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes(accessToken + ":" + secretKey));
 
         dynamic myPlace = await GetMyPlace(encodedAuth, stoppingToken);
 
@@ -93,12 +96,54 @@ public class LoginManager(IDataProtectionProvider provider,
         }
     }
 
+    public async Task UpdateIP(CancellationToken stoppingToken = default)
+    {
+        var (accessToken, secretKey) = GetCredentials();
+        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(secretKey))
+        {
+            _logger.LogWarning("Not logged in.");
+            return;
+        }
+
+        var ip = await _dnsService.GetPublicIPAdress(stoppingToken);
+        if (string.IsNullOrEmpty(ip))
+        {
+            _logger.LogError("Could not retrieve public IP address.");
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation(ip);
+            
+            var updateIpUri = _configuration.GetValue("App:UserServiceUri", "https://api.datalayer.storage/user/v1/") + "update_user_ip";
+            _logger.LogInformation("Contacting {loginUri}", updateIpUri);
+
+            using var httpClient = new HttpClient()
+            {
+                Timeout = TimeSpan.FromSeconds(60)
+            };
+            var encodedAuth = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes(accessToken + ":" + secretKey));
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encodedAuth);
+
+            var data = new { ip_address = ip };
+            var response = await httpClient.PostAsJsonAsync(updateIpUri, data, stoppingToken);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync(stoppingToken);
+
+            Console.WriteLine(content);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.InnerException?.Message ?? e.Message);
+        }
+    }
+
     private async Task<dynamic> GetMyPlace(string encodedAuth, CancellationToken stoppingToken)
     {
-        var loginUri = _configuration.GetValue("App:MeUri", "https://api.datalayer.storage/user/v1/me");
+        var loginUri = _configuration.GetValue("App:UserServiceUri", "https://api.datalayer.storage/user/v1/") + "me";
         _logger.LogInformation("Contacting {loginUri}", loginUri);
 
-        // Set the Authorization header with the encoded username and password
         using var httpClient = new HttpClient()
         {
             Timeout = TimeSpan.FromSeconds(60)
@@ -112,13 +157,13 @@ public class LoginManager(IDataProtectionProvider provider,
 
     private (string accessToken, string secretKey) GetCredentials()
     {
-        var encodedAuth = _appStorage.Load("auth");
-        if (string.IsNullOrEmpty(encodedAuth))
+        var protectedAuth = _appStorage.Load("auth");
+        if (string.IsNullOrEmpty(protectedAuth))
         {
             return (string.Empty, string.Empty);
         }
 
-        var unprotected = _protector.Unprotect(encodedAuth);
+        var unprotected = _protector.Unprotect(protectedAuth);
         var decodedAuth = Encoding.GetEncoding("ISO-8859-1").GetString(Convert.FromBase64String(unprotected));
         var credentials = decodedAuth.Split(':');
         return (credentials[0], credentials[1]);
@@ -149,7 +194,7 @@ public class LoginManager(IDataProtectionProvider provider,
                 continue;
             }
             secret += key.KeyChar;
-            Console.Write("*");
+            Console.Write("");
         }
 
         return secret;

@@ -1,8 +1,10 @@
 using System.Net.Http.Json;
 
-public class HostManager(ILogger<HostManager> logger,
+public class HostManager(DnsService denService,
+                        ILogger<HostManager> logger,
                         IConfiguration configuration)
 {
+    private readonly DnsService _dnsService = denService;
     private readonly ILogger<HostManager> _logger = logger;
     private readonly IConfiguration _configuration = configuration;
 
@@ -25,7 +27,7 @@ public class HostManager(ILogger<HostManager> logger,
                 _logger.LogInformation($"Checking {hostToCheck}");
 
                 var data = new { hostname = hostToCheck };
-                var checkConnectionUri = _configuration.GetValue("App:CheckConnectionUri", "https://api.datalayer.storage/mirrors/v1/check_connection");
+                var checkConnectionUri = _configuration.GetValue("App:MirrorServiceUri", "https://api.datalayer.storage/mirrors/v1/") + "check_connection";
                 var response = await httpClient.PostAsJsonAsync(checkConnectionUri, data, token);
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync(token);
@@ -39,42 +41,13 @@ public class HostManager(ILogger<HostManager> logger,
         }
     }
 
-    private async Task<string?> GetHost(string host, CancellationToken token = default)
+    private async Task<string?> GetHost(string? host, CancellationToken token = default)
     {
         if (!string.IsNullOrEmpty(host))
         {
             return host;
         }
 
-        string? variableValue = Environment.GetEnvironmentVariable("App:MirrorHostUri");
-        if (!string.IsNullOrEmpty(variableValue))
-        {
-            return variableValue;
-        }
-
-        var publicIpAddress = await GetPublicIPAdress(token);
-        if (!string.IsNullOrEmpty(publicIpAddress))
-        {
-            return $"http://{publicIpAddress}:8575";
-        }
-
-        return null;
-    }
-
-    private async Task<string> GetPublicIPAdress(CancellationToken stoppingToken)
-    {
-        try
-        {
-            using var httpClient = new HttpClient()
-            {
-                Timeout = TimeSpan.FromSeconds(10)
-            };
-            return await httpClient.GetStringAsync("https://api.ipify.org", stoppingToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Failed to get public ip address: {Message}", ex.InnerException?.Message ?? ex.Message);
-            return string.Empty;
-        }
+        return await _dnsService.GetHostUri(token);
     }
 }
