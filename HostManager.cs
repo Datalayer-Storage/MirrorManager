@@ -1,19 +1,19 @@
-namespace MirrorManager;
-
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
 
-public static class HostManager
+public class HostManager(ILogger<HostManager> logger,
+                        IConfiguration configuration)
 {
-    public static async Task CheckHost(string host, CancellationToken token = default)
+    private readonly ILogger<HostManager> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
+
+    public async Task CheckHost(string host, CancellationToken token = default)
     {
         try
         {
             var hostToCheck = await GetHost(host, token);
             if (string.IsNullOrEmpty(hostToCheck))
             {
-                Console.WriteLine("No host specified and no public ip address found.");
+                _logger.LogWarning("No host specified and no public ip address found.");
             }
             else
             {
@@ -22,27 +22,30 @@ public static class HostManager
                     Timeout = TimeSpan.FromSeconds(10)
                 };
 
+                _logger.LogInformation($"Checking {hostToCheck}");
+
                 var data = new { hostname = hostToCheck };
                 var response = await httpClient.PostAsJsonAsync("https://api.datalayer.storage/mirrors/v1/check_connection", data, token);
                 response.EnsureSuccessStatusCode();
-                var content = await JsonSerializer.DeserializeAsync<dynamic>(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
-                Console.WriteLine(content);
+                var content = await response.Content.ReadAsStringAsync(token);
+
+                _logger.LogInformation(content);
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e.InnerException?.Message ?? e.Message);
+            _logger.LogError(e.InnerException?.Message ?? e.Message);
         }
     }
 
-    private static async Task<string?> GetHost(string host, CancellationToken token = default)
+    private async Task<string?> GetHost(string host, CancellationToken token = default)
     {
         if (!string.IsNullOrEmpty(host))
         {
             return host;
         }
 
-        string? variableValue = Environment.GetEnvironmentVariable("DlMirrorSync:MirrorHostUri");
+        string? variableValue = Environment.GetEnvironmentVariable("App:MirrorHostUri");
         if (!string.IsNullOrEmpty(variableValue))
         {
             return variableValue;
@@ -57,7 +60,7 @@ public static class HostManager
         return null;
     }
 
-    private static async Task<string> GetPublicIPAdress(CancellationToken stoppingToken)
+    private async Task<string> GetPublicIPAdress(CancellationToken stoppingToken)
     {
         try
         {
@@ -69,7 +72,7 @@ public static class HostManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Failed to get public ip address: {Message}", ex.Message);
+            _logger.LogError("Failed to get public ip address: {Message}", ex.InnerException?.Message ?? ex.Message);
             return string.Empty;
         }
     }

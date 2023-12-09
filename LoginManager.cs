@@ -1,10 +1,10 @@
-namespace MirrorManager;
-
 using Microsoft.AspNetCore.DataProtection;
 
-public class LoginManager
+public class LoginManager(IDataProtectionProvider provider,
+                        ILogger<HostManager> logger,
+                        IConfiguration configuration)
 {
-    IDataProtector _protector;
-
-    public LoginManager(IDataProtectionProvider provider) => _protector = provider.CreateProtector("Contoso.MyClass.v1");
+    private readonly ILogger<HostManager> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
+    private readonly IDataProtector _protector = provider.CreateProtector("DataLayer-Storage.DynDns.v1");
 }
