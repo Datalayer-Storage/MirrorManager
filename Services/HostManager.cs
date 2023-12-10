@@ -10,34 +10,27 @@ public class HostManager(DnsService denService,
 
     public async Task CheckHost(string host, CancellationToken token = default)
     {
-        try
+        var hostToCheck = await GetHost(host, token);
+        if (string.IsNullOrEmpty(hostToCheck))
         {
-            var hostToCheck = await GetHost(host, token);
-            if (string.IsNullOrEmpty(hostToCheck))
-            {
-                _logger.LogWarning("No host specified and no public ip address found.");
-            }
-            else
-            {
-                using var httpClient = new HttpClient()
-                {
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
-
-                _logger.LogInformation($"Checking {hostToCheck}");
-
-                var data = new { hostname = hostToCheck };
-                var checkConnectionUri = _configuration.GetValue("App:MirrorServiceUri", "https://api.datalayer.storage/mirrors/v1/") + "check_connection";
-                var response = await httpClient.PostAsJsonAsync(checkConnectionUri, data, token);
-                response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync(token);
-
-                Console.WriteLine(content);
-            }
+            _logger.LogWarning("No host specified and no public ip address found.");
         }
-        catch (Exception e)
+        else
         {
-            _logger.LogError(e, "{Message}", e.InnerException?.Message ?? e.Message);
+            using var httpClient = new HttpClient()
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+
+            _logger.LogInformation($"Checking {hostToCheck}");
+
+            var data = new { hostname = hostToCheck };
+            var checkConnectionUri = _configuration.GetValue("App:MirrorServiceUri", "https://api.datalayer.storage/mirrors/v1/") + "check_connection";
+            var response = await httpClient.PostAsJsonAsync(checkConnectionUri, data, token);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync(token);
+
+            Console.WriteLine(content);
         }
     }
 

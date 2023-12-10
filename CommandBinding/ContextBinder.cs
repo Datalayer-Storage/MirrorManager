@@ -2,9 +2,13 @@ using System.CommandLine.Invocation;
 using System.CommandLine;
 using System.Reflection;
 
-static class ContextBinder
+public class ContextBinder(ILogger<ContextBinder> logger,
+                        IConfiguration configuration)
 {
-    public static void BindToContext(this Command command, InvocationContext context, MethodInfo method, IServiceProvider services)
+    private readonly ILogger<ContextBinder> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
+
+    public void BindToContext(Command command, InvocationContext context, MethodInfo method, IServiceProvider services)
     {
         var type = method.DeclaringType ?? throw new InvalidOperationException($"Could not get declaring type for method {method.Name}");
         var target = Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Could not create instance of type {type.FullName}");
@@ -31,11 +35,20 @@ static class ContextBinder
             }
         }
 
-        var task = method.Invoke(target, services.GetAsArguments(method)) as Task<int> ?? throw new InvalidOperationException($"Could not invoke method {method.Name}");
-        context.ExitCode = task.GetAwaiter().GetResult();
+        try
+        {
+            // now that all the target object's properties have been set, invoke the method
+            var task = method.Invoke(target, GetAsArguments(services, method)) as Task<int> ?? throw new InvalidOperationException($"Could not invoke method {method.Name}");
+            context.ExitCode = task.GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, e.InnerException?.Message ?? e.Message);
+            context.ExitCode = -1;
+        }
     }
 
-    private static object[] GetAsArguments(this IServiceProvider services, MethodInfo method)
+    private static object[] GetAsArguments(IServiceProvider services, MethodInfo method)
     {
         // for every parameter the target method has, get the service from the container with a matching type
         var parameters = method.GetParameters();

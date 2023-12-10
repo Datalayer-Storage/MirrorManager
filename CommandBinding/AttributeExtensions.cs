@@ -81,7 +81,8 @@ public static class AttributeExtensions
         var target = type.GetCommandTarget();
         if (target is not null)
         {
-            Handler.SetHandler(command, (context) => command.BindToContext(context, target, services));
+            var binder = services.GetRequiredService<ContextBinder>();
+            Handler.SetHandler(command, (context) => binder.BindToContext(command, context, target, services));
         }
 
         parent.AddCommand(command);

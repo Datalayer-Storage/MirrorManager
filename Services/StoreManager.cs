@@ -20,48 +20,34 @@ public class StoreManager(DataLayerProxy dataLayer,
 
     public async Task UnmirrorAll(ulong fee, CancellationToken token = default)
     {
-        try
+        var subscriptions = await _dataLayer.Subscriptions(token);
+        foreach (var subscription in subscriptions)
         {
-            var subscriptions = await _dataLayer.Subscriptions(token);
-            foreach (var subscription in subscriptions)
-            {
-                var mirrors = await _dataLayer.GetMirrors(subscription, token);
+            var mirrors = await _dataLayer.GetMirrors(subscription, token);
 
-                foreach (var mirror in mirrors.Where(m => m.Ours))
-                {
-                    _logger.LogInformation($"Removing mirror for {subscription}");
-                    await _dataLayer.DeleteMirror(mirror.CoinId, fee, token);
-                }
+            foreach (var mirror in mirrors.Where(m => m.Ours))
+            {
+                _logger.LogInformation($"Removing mirror for {subscription}");
+                await _dataLayer.DeleteMirror(mirror.CoinId, fee, token);
             }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e.InnerException?.Message ?? e.Message);
         }
     }
 
     public async Task ListAll(bool ours, CancellationToken token = default)
     {
-        try
-        {
-            var subscriptions = await _dataLayer.Subscriptions(token);
-            _logger.LogInformation($"Found {subscriptions.Count()} subscriptions.\n");
+        var subscriptions = await _dataLayer.Subscriptions(token);
+        _logger.LogInformation($"Found {subscriptions.Count()} subscriptions.\n");
 
-            foreach (var subscription in subscriptions)
+        foreach (var subscription in subscriptions)
+        {
+            Console.WriteLine($"Subscription: {subscription}");
+            var mirrors = await _dataLayer.GetMirrors(subscription, token);
+            mirrors = ours ? mirrors.Where(m => m.Ours) : mirrors;
+
+            foreach (var mirror in mirrors)
             {
-                Console.WriteLine($"Subscription: {subscription}");
-                var mirrors = await _dataLayer.GetMirrors(subscription, token);
-                mirrors = ours ? mirrors.Where(m => m.Ours) : mirrors;
-
-                foreach (var mirror in mirrors)
-                {
-                    Console.WriteLine($"  Mirror: {mirror.CoinId}");
-                }
+                Console.WriteLine($"  Mirror: {mirror.CoinId}");
             }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, e.InnerException?.Message ?? e.Message);
         }
     }
 }
