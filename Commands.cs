@@ -72,7 +72,7 @@ static class Commands
                 }),
             CreateCommandWithSingleOption(
                 "list-all",
-                "List all stores and their mirrors.",
+                "List all subscribed stores and their mirrors.",
                 "ours",
                 "Whether to only list our mirrors.",
                 true,
