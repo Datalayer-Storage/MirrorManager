@@ -3,13 +3,14 @@
 
 # MirrorManager
 
-utilities to help manage chia data layer mirrors and subscriptions
+Utilities to manage chia data layer storage, mirrors, and subscriptions
 
 ## Usage
 
 ```bash
- ./MirrorManager --help
+./MirrorManager --help
 Description:
+  Utilities to manage chia data layer storage, mirrors, and subscriptions.
 
 Usage:
   MirrorManager [command] [options]

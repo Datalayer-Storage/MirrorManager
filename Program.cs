@@ -21,7 +21,7 @@ builder.Services.AddSingleton<StoreManager>()
 
 var host = builder.Build();
 
-return await new CommandLineBuilder()
+return await new CommandLineBuilder(new RootCommand("Utilities to manage chia data layer storage, mirrors, and subscriptions."))
     .UseDefaults()
     .UseAttributes(host.Services)
     .Build()

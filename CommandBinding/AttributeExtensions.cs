@@ -13,6 +13,7 @@ public static class AttributeExtensions
     /// <returns></returns>
     public static CommandLineBuilder UseAttributes(this CommandLineBuilder builder, IServiceProvider services)
     {
+        // this assumes we're running in the assembly with all the commands
         var assembly = Assembly.GetExecutingAssembly();
         var types = from type in assembly.GetTypes()
                     let attr = type.GetCustomAttribute<CommandAttribute>()
@@ -20,10 +21,9 @@ public static class AttributeExtensions
                     orderby attr.Name
                     select (type, attr);
 
-        var root = builder.Command;
         foreach (var (type, attr) in types)
         {
-            root.AddCommands(type, attr, services);
+            builder.Command.AddCommands(type, attr, services);
         }
 
         return builder;
