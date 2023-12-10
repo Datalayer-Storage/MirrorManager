@@ -2,6 +2,7 @@
 using chia.dotnet;
 using Microsoft.AspNetCore.DataProtection;
 using System.CommandLine;
+using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
@@ -18,5 +19,9 @@ builder.Services.AddSingleton<StoreManager>()
     .SetDefaultKeyLifetime(TimeSpan.FromDays(180)); ;
 
 var host = builder.Build();
-var rootCommand = Commands.CreateCommands(host.Services);
-return await rootCommand.InvokeAsync(args);
+
+return await new CommandLineBuilder()
+    .UseDefaults()
+    .UseAttributes(host.Services)
+    .Build()
+    .InvokeAsync(args);
